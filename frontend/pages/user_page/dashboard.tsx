@@ -679,7 +679,7 @@ export default function DashboardPage() {
                         <Link
                           href={
                             id
-                              ? `/calculations/${id}`
+                              ? `/dashboard/calculations/${id}`
                               : "/calculations"
                           }
                           key={

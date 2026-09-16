@@ -5,9 +5,9 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://envocentre-183a75cb.fastapicloud.dev";
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-          const cookieStore = await cookies();
+      const cookieStore = await cookies();
   const token = cookieStore.get('access_token')?.value;
   if(!token) return NextResponse.json({
     success: "false",
@@ -15,35 +15,19 @@ export async function POST(request: NextRequest) {
   },{
     status: 401
   })
-
-    const body = await request.json();
-
-    const { facility_area_m2,gpu_model,gpu_count,hours_used,renewable_energy_percent } = body;
-
-    if (!facility_area_m2 || !gpu_model || !gpu_count || !hours_used || !renewable_energy_percent) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Every Credentials arfe required",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Send login request to FastAPI
-    const response = await fetch(`${API_URL}/api/v1/calculations`, {
-      method: "POST",
+  const left_id = 0;
+  const right_id = 0;
+    const response = await fetch(`${API_URL}/api/v1/calculations/compare/${left_id}/${right_id}`, {
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
-      },  
-      body: JSON.stringify({
-        facility_area_m2,gpu_model,gpu_count,hours_used,renewable_energy_percent
-      }),
+      },
       cache: "no-store",
     });
 
     const data = await response.json().catch(() => null);
+    console.log(data)
 
     if (!response.ok) {
       return NextResponse.json(
@@ -53,29 +37,27 @@ export async function POST(request: NextRequest) {
             data?.detail ||
             data?.message ||
             data?.error ||
-            "Invalid email or password",
+            "",
         },
         { status: response.status }
       );
     }
-
     const nextResponse = NextResponse.json(
       {
         success: true,
-        message: "Calculation created successful",
-        data
+        data: data,
       },
       { status: 200 }
     );
 
     return nextResponse;
   } catch (error) {
-    console.error("Login route error:", error);
+    console.error("Cannot get comparisions:", error);
 
     return NextResponse.json(
       {
         success: false,
-        message: "Unable to connect to server",
+        message: "Unable to connect to fetch data from server",
       },
       { status: 500 }
     );

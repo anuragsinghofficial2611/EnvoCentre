@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from 'next/headers';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://envocentre-183a75cb.fastapicloud.dev";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,34 +14,33 @@ export async function POST(request: NextRequest) {
   })
 
     const body = await request.json();
+    console.log(body,"this request is being send")
 
-    const { facility_area_m2,gpu_model,gpu_count,hours_used,renewable_energy_percent } = body;
+    // if (!name || !calculation_type || !description || !value || !unit) {
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       message: "Every Credentials are required",
+    //     },
+    //     { status: 400 }
+    //   );
+    // }
 
-    if (!facility_area_m2 || !gpu_model || !gpu_count || !hours_used || !renewable_energy_percent) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Every Credentials arfe required",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Send login request to FastAPI
-    const response = await fetch(`${API_URL}/api/v1/calculations`, {
+    console.log('request is being to server...')
+    const response = await fetch(`${process.env.API_URL}/api/v1/calculations/compare`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
-      },  
-      body: JSON.stringify({
-        facility_area_m2,gpu_model,gpu_count,hours_used,renewable_energy_percent
-      }),
+      },
+      body: JSON.stringify(
+        body
+      ),
       cache: "no-store",
     });
 
     const data = await response.json().catch(() => null);
-
+    console.log("backend data: ",data);
     if (!response.ok) {
       return NextResponse.json(
         {
@@ -61,11 +57,12 @@ export async function POST(request: NextRequest) {
 
     const nextResponse = NextResponse.json(
       {
-        success: true,
-        message: "Calculation created successful",
-        data
-      },
-      { status: 200 }
+  success: true,
+  message: "Comparison created successfully",
+  data,
+},{
+    status: 200
+}
     );
 
     return nextResponse;

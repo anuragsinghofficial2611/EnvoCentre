@@ -1,271 +1,122 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   Calculator,
   CheckCircle2,
+  ChevronRight,
   Clock3,
-  Download,
-  Eye,
+  Droplets,
   Filter,
-  MoreHorizontal,
-  Plus,
+  Gauge,
+  Leaf,
   RefreshCw,
   Search,
+  Server,
   Sparkles,
-  TrendingDown,
-  XCircle,
+  Trees,
+  Zap,
 } from "lucide-react";
 
-/* -------------------------------------------------------------------------- */
-/* Types                                                                      */
-/* -------------------------------------------------------------------------- */
+type CalculationImpact = {
+  energy_kwh: {
+    it: number;
+    total: number;
+  };
 
-type Calculation = Record<string, unknown>;
+  heat: {
+    kwh: number;
+    mj: number;
+    btu: number;
+  };
 
-const filters = ["All", "Completed", "Processing", "Failed"];
+  water: {
+    liters: number;
+    cubic_meters: number;
+  };
 
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
+  co2_kg: number;
+  co2_kg_without_renewables: number;
+  renewable_energy_percent: number;
 
-function extractCalculations(payload: unknown): Calculation[] {
-  if (Array.isArray(payload)) {
-    return payload.filter(
-      (item): item is Calculation =>
-        typeof item === "object" && item !== null,
-    );
-  }
+  equivalences: {
+    homes_powered_for_a_day: number;
+    cars_off_the_road_for_a_year: number;
+    flights_one_way_per_passenger: number;
+  };
 
-  if (!payload || typeof payload !== "object") {
-    return [];
-  }
+  forest: {
+    hectares_needed: number;
+    trees_equivalent: number;
+    land_cleared_hectares: number;
+  };
 
-  const object = payload as Record<string, unknown>;
+  capacity_estimate: number;
 
-  const possibleArrays = [
-    object.data,
-    object.calculations,
-    object.results,
-    object.items,
-    object.records,
-  ];
+  sources: {
+    gpu_tdp_w: number;
+    pue: number;
+    wue_l_per_kwh: number;
+    carbon_intensity_g_per_kwh: number;
+    co2_per_tree_kg_year: number;
+    co2_per_hectare_kg_year: number;
+  };
 
-  for (const value of possibleArrays) {
-    if (Array.isArray(value)) {
-      return value.filter(
-        (item): item is Calculation =>
-          typeof item === "object" && item !== null,
-      );
-    }
+  notes: string[];
+};
 
-    if (value && typeof value === "object") {
-      const nested = value as Record<string, unknown>;
+type Calculation = {
+  id: number;
+  user_id: number;
+  facility_area_m2: number;
+  gpu_model: string;
+  gpu_count: number;
+  hours_used: number;
+  renewable_energy_percent: number;
+  impact: CalculationImpact;
+  created_at: string;
+  updated_at: string;
+};
 
-      const nestedArrays = [
-        nested.data,
-        nested.calculations,
-        nested.results,
-        nested.items,
-        nested.records,
-      ];
-
-      for (const nestedValue of nestedArrays) {
-        if (Array.isArray(nestedValue)) {
-          return nestedValue.filter(
-            (item): item is Calculation =>
-              typeof item === "object" && item !== null,
-          );
-        }
-      }
-    }
-  }
-
-  return [];
-}
-
-function getString(
-  object: Calculation,
-  keys: string[],
-  fallback = "—",
-): string {
-  for (const key of keys) {
-    const value = object[key];
-
-    if (
-      typeof value === "string" ||
-      typeof value === "number" ||
-      typeof value === "boolean"
-    ) {
-      return String(value);
-    }
-  }
-
-  return fallback;
-}
-
-function getId(calculation: Calculation, index: number): string {
-  return getString(
-    calculation,
-    [
-      "id",
-      "_id",
-      "calculation_id",
-      "calculationId",
-      "uuid",
-    ],
-    `#${index + 1}`,
-  );
-}
-
-function getName(calculation: Calculation): string {
-  return getString(
-    calculation,
-    [
-      "name",
-      "title",
-      "calculation_name",
-      "calculationName",
-      "label",
-    ],
-    "Untitled calculation",
-  );
-}
-
-function getType(calculation: Calculation): string {
-  return getString(
-    calculation,
-    [
-      "type",
-      "calculation_type",
-      "calculationType",
-      "category",
-      "method",
-    ],
-    "Calculation",
-  );
-}
-
-function normalizeStatus(
-  calculation: Calculation,
-): "completed" | "processing" | "failed" {
-  const raw = getString(
-    calculation,
-    [
-      "status",
-      "state",
-      "calculation_status",
-      "calculationStatus",
-    ],
-    "",
-  ).toLowerCase();
-
-  if (
-    raw.includes("fail") ||
-    raw.includes("error") ||
-    raw.includes("cancel")
-  ) {
-    return "failed";
-  }
-
-  if (
-    raw.includes("process") ||
-    raw.includes("pending") ||
-    raw.includes("running") ||
-    raw.includes("progress")
-  ) {
-    return "processing";
-  }
-
-  return "completed";
-}
-
-function getCreatedAt(calculation: Calculation): string {
-  const raw = getString(
-    calculation,
-    [
-      "createdAt",
-      "created_at",
-      "created",
-      "date_created",
-      "dateCreated",
-      "timestamp",
-    ],
-    "",
-  );
-
-  if (!raw) {
+const formatNumber = (
+  value: number | null | undefined,
+  maximumFractionDigits = 2,
+) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
     return "—";
   }
 
-  const date = new Date(raw);
+  return new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits,
+  }).format(value);
+};
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return raw;
+    return value;
   }
 
-  return date.toLocaleString("en-IN", {
+  return new Intl.DateTimeFormat("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
-}
-
-function getResult(calculation: Calculation): string {
-  return getString(
-    calculation,
-    [
-      "result",
-      "value",
-      "total",
-      "impact",
-      "carbon_footprint",
-      "carbonFootprint",
-      "emission",
-      "emissions",
-      "total_emissions",
-      "totalEmissions",
-    ],
-    "",
-  );
-}
-
-function getUnit(calculation: Calculation): string {
-  return getString(
-    calculation,
-    [
-      "unit",
-      "result_unit",
-      "resultUnit",
-      "impact_unit",
-      "impactUnit",
-    ],
-    "",
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Page                                                                       */
-/* -------------------------------------------------------------------------- */
+  }).format(date);
+};
 
 export default function CalculationsPage() {
   const [calculations, setCalculations] = useState<Calculation[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
-
-  /* ------------------------------------------------------------------------ */
-  /* Fetch backend                                                            */
-  /* ------------------------------------------------------------------------ */
 
   const fetchCalculations = async (isRefresh = false) => {
     try {
@@ -277,10 +128,6 @@ export default function CalculationsPage() {
 
       setError("");
 
-      /*
-       * IMPORTANT:
-       * This is the SAME endpoint used by your existing implementation.
-       */
       const response = await fetch(
         "/api/calculations/getcalculation",
         {
@@ -293,39 +140,49 @@ export default function CalculationsPage() {
         },
       );
 
+      const data = await response.json().catch(() => null);
+
+      console.log("Calculations response:", data);
+
       if (!response.ok) {
         let message = `Request failed with status ${response.status}`;
 
-        try {
-          const errorBody = await response.json();
-
-          if (typeof errorBody?.detail === "string") {
-            message = errorBody.detail;
-          } else if (typeof errorBody?.message === "string") {
-            message = errorBody.message;
-          }
-        } catch(error) {
-            console.log(error);
-            return;
+        if (typeof data?.message === "string") {
+          message = data.message;
+        } else if (Array.isArray(data?.message)) {
+          message = data.message
+            .map((item: { msg?: string }) => item?.msg)
+            .filter(Boolean)
+            .join(", ");
+        } else if (typeof data?.detail === "string") {
+          message = data.detail;
         }
 
-        // throw new Error(message);
+        throw new Error(message);
       }
 
-      const payload = await response.json();
+      /*
+       * Backend response is expected to be:
+       *
+       * [
+       *   {
+       *     id: 1,
+       *     facility_area_m2: ...,
+       *     gpu_model: ...,
+       *     impact: {...}
+       *   }
+       * ]
+       */
 
-      console.log(
-        "GET /api/calculations/getcalculation response:",
-        payload,
-      );
+      const result = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
 
-      const backendCalculations = extractCalculations(payload);
-
-      setCalculations(backendCalculations);
+      setCalculations(result);
     } catch (err) {
-      console.error("Failed to fetch calculations:", err);
-
-      setCalculations([]);
+      console.error("Load calculations error:", err);
 
       setError(
         err instanceof Error
@@ -338,63 +195,48 @@ export default function CalculationsPage() {
     }
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* Initial request                                                          */
-  /* ------------------------------------------------------------------------ */
-
   useEffect(() => {
     document.title = "Calculations | EnvoCentre";
-
     fetchCalculations();
   }, []);
-
-  /* ------------------------------------------------------------------------ */
-  /* Search + filter                                                          */
-  /* ------------------------------------------------------------------------ */
 
   const filteredCalculations = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return calculations.filter((calculation) => {
-      const name = getName(calculation).toLowerCase();
-      const type = getType(calculation).toLowerCase();
-      const id = getId(calculation, 0).toLowerCase();
-
       const matchesSearch =
         !query ||
-        name.includes(query) ||
-        type.includes(query) ||
-        id.includes(query);
-
-      const status = normalizeStatus(calculation);
+        String(calculation.id).includes(query) ||
+        calculation.gpu_model.toLowerCase().includes(query);
 
       const matchesFilter =
         activeFilter === "All" ||
-        status === activeFilter.toLowerCase();
+        (activeFilter === "Renewable" &&
+          calculation.renewable_energy_percent > 0) ||
+        (activeFilter === "High impact" &&
+          calculation.impact.co2_kg > 10);
 
       return matchesSearch && matchesFilter;
     });
   }, [calculations, search, activeFilter]);
 
-  /* ------------------------------------------------------------------------ */
-  /* Stats                                                                    */
-  /* ------------------------------------------------------------------------ */
+  const totalEnergy = calculations.reduce(
+    (sum, calculation) =>
+      sum + (calculation.impact?.energy_kwh?.total || 0),
+    0,
+  );
 
-  const completedCount = calculations.filter(
-    (item) => normalizeStatus(item) === "completed",
-  ).length;
+  const totalWater = calculations.reduce(
+    (sum, calculation) =>
+      sum + (calculation.impact?.water?.liters || 0),
+    0,
+  );
 
-  const processingCount = calculations.filter(
-    (item) => normalizeStatus(item) === "processing",
-  ).length;
-
-  const failedCount = calculations.filter(
-    (item) => normalizeStatus(item) === "failed",
-  ).length;
-
-  /* ------------------------------------------------------------------------ */
-  /* UI                                                                       */
-  /* ------------------------------------------------------------------------ */
+  const totalCo2 = calculations.reduce(
+    (sum, calculation) =>
+      sum + (calculation.impact?.co2_kg || 0),
+    0,
+  );
 
   return (
     <main className="min-h-screen bg-[#06100d] text-white">
@@ -405,11 +247,8 @@ export default function CalculationsPage() {
         <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-green-500/[0.05] blur-[120px]" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
-        {/* ---------------------------------------------------------------- */}
-        {/* Header                                                           */}
-        {/* ---------------------------------------------------------------- */}
-
+      <div className="relative mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -427,37 +266,30 @@ export default function CalculationsPage() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/45 sm:text-base">
-              Create, analyse and manage your environmental impact
-              calculations from one workspace.
+              Review every environmental calculation, its inputs,
+              environmental impact and detailed results.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => fetchCalculations(true)}
-              disabled={refreshing || loading}
+              disabled={refreshing}
               className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 text-sm text-white/70 transition hover:border-white/20 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RefreshCw
                 size={16}
-                className={
-                  refreshing
-                    ? "animate-spin"
-                    : ""
-                }
+                className={refreshing ? "animate-spin" : ""}
               />
-
               Refresh
             </button>
 
             <Link
-              href="/dashboard/calculations/new"
+              href="/calculations/new"
               className="group flex h-11 items-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-[#03100b] shadow-[0_0_30px_rgba(16,185,129,0.16)] transition hover:bg-emerald-400"
             >
-              <Plus size={17} />
-
+              <Sparkles size={17} />
               New calculation
-
               <ArrowRight
                 size={15}
                 className="transition-transform group-hover:translate-x-0.5"
@@ -466,80 +298,38 @@ export default function CalculationsPage() {
           </div>
         </motion.div>
 
-        {/* ---------------------------------------------------------------- */}
-        {/* Error                                                             */}
-        {/* ---------------------------------------------------------------- */}
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 flex flex-col gap-3 rounded-xl border border-red-400/15 bg-red-400/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex items-start gap-3">
-              <XCircle
-                size={18}
-                className="mt-0.5 shrink-0 text-red-400"
-              />
-
-              <div>
-                <p className="text-sm font-medium text-red-300">
-                  Failed to load calculations
-                </p>
-
-                <p className="mt-1 text-xs text-red-200/50">
-                  {error}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => fetchCalculations()}
-              className="rounded-lg border border-red-400/15 bg-red-400/[0.07] px-3 py-2 text-xs text-red-300 transition hover:bg-red-400/[0.12]"
-            >
-              Try again
-            </button>
-          </motion.div>
-        )}
-
-        {/* ---------------------------------------------------------------- */}
-        {/* Stats                                                             */}
-        {/* ---------------------------------------------------------------- */}
-
+        {/* Summary */}
         <div className="mb-7 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
+          <SummaryCard
             icon={<Calculator size={18} />}
-            label="Total calculations"
-            value={loading ? "—" : calculations.length}
-            description="Across your workspace"
+            label="Calculations"
+            value={calculations.length}
+            description="Total calculations"
           />
 
-          <StatCard
-            icon={<CheckCircle2 size={18} />}
-            label="Completed"
-            value={loading ? "—" : completedCount}
-            description="Ready to analyse"
+          <SummaryCard
+            icon={<Zap size={18} />}
+            label="Total energy"
+            value={`${formatNumber(totalEnergy)} kWh`}
+            description="Across all calculations"
           />
 
-          <StatCard
-            icon={<Clock3 size={18} />}
-            label="Processing"
-            value={loading ? "—" : processingCount}
-            description="Currently running"
+          <SummaryCard
+            icon={<Droplets size={18} />}
+            label="Total water"
+            value={`${formatNumber(totalWater)} L`}
+            description="Estimated water consumption"
           />
 
-          <StatCard
-            icon={<XCircle size={18} />}
-            label="Failed"
-            value={loading ? "—" : failedCount}
-            description="Need attention"
+          <SummaryCard
+            icon={<Leaf size={18} />}
+            label="Total CO₂"
+            value={`${formatNumber(totalCo2)} kg`}
+            description="With renewable contribution"
           />
         </div>
 
-        {/* ---------------------------------------------------------------- */}
-        {/* New calculation CTA                                               */}
-        {/* ---------------------------------------------------------------- */}
-
+        {/* CTA */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -551,17 +341,17 @@ export default function CalculationsPage() {
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-emerald-400/15 bg-emerald-400/10 text-emerald-400">
-                <Sparkles size={21} />
+                <Gauge size={21} />
               </div>
 
               <div>
                 <h2 className="text-lg font-semibold">
-                  Start a new calculation
+                  Environmental impact history
                 </h2>
 
                 <p className="mt-1 max-w-xl text-sm leading-6 text-white/45">
-                  Enter your activity data and let EnvoCentre calculate
-                  the corresponding environmental impact.
+                  Select any calculation below to inspect the complete
+                  calculation returned by the backend.
                 </p>
               </div>
             </div>
@@ -576,10 +366,7 @@ export default function CalculationsPage() {
           </div>
         </motion.div>
 
-        {/* ---------------------------------------------------------------- */}
-        {/* Main calculations                                                 */}
-        {/* ---------------------------------------------------------------- */}
-
+        {/* Calculations */}
         <motion.section
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -595,12 +382,12 @@ export default function CalculationsPage() {
                 </h2>
 
                 <p className="mt-1 text-xs text-white/35">
-                  Data below is loaded directly from your backend.
+                  {filteredCalculations.length} calculation
+                  {filteredCalculations.length === 1 ? "" : "s"} shown
                 </p>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                {/* Search */}
                 <div className="relative">
                   <Search
                     size={16}
@@ -612,96 +399,52 @@ export default function CalculationsPage() {
                     onChange={(event) =>
                       setSearch(event.target.value)
                     }
-                    placeholder="Search calculations..."
+                    placeholder="Search GPU or ID..."
                     className="h-10 w-full rounded-lg border border-white/[0.08] bg-black/20 pl-9 pr-4 text-sm text-white outline-none placeholder:text-white/25 focus:border-emerald-400/30 sm:w-64"
                   />
                 </div>
 
-                {/* Filter */}
                 <div className="flex items-center gap-1 overflow-x-auto rounded-lg border border-white/[0.08] bg-black/20 p-1">
                   <Filter
                     size={14}
                     className="ml-2 mr-1 shrink-0 text-white/30"
                   />
 
-                  {filters.map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() => setActiveFilter(filter)}
-                      className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs transition ${
-                        activeFilter === filter
-                          ? "bg-white/10 text-white"
-                          : "text-white/40 hover:text-white/70"
-                      }`}
-                    >
-                      {filter}
-                    </button>
-                  ))}
+                  {["All", "Renewable", "High impact"].map(
+                    (filter) => (
+                      <button
+                        key={filter}
+                        onClick={() =>
+                          setActiveFilter(filter)
+                        }
+                        className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs transition ${
+                          activeFilter === filter
+                            ? "bg-white/10 text-white"
+                            : "text-white/40 hover:text-white/70"
+                        }`}
+                      >
+                        {filter}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* -------------------------------------------------------------- */}
-          {/* Loading                                                        */}
-          {/* -------------------------------------------------------------- */}
-
+          {/* Loading */}
           {loading ? (
-            <>
-              <div className="hidden md:block">
-                <div className="border-b border-white/[0.06]">
-                  <div className="grid grid-cols-6 gap-4 px-5 py-4">
-                    {[
-                      "Calculation",
-                      "Type",
-                      "Status",
-                      "Result",
-                      "Created",
-                      "Actions",
-                    ].map((item) => (
-                      <div
-                        key={item}
-                        className="text-[11px] uppercase tracking-wider text-white/20"
-                      >
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="divide-y divide-white/[0.05]">
-                  {[1, 2, 3, 4].map((item) => (
-                    <CalculationSkeleton key={item} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="divide-y divide-white/[0.06] md:hidden">
-                {[1, 2, 3].map((item) => (
-                  <div
-                    key={item}
-                    className="animate-pulse p-5"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-white/[0.06]" />
-
-                      <div className="flex-1">
-                        <div className="h-3 w-40 rounded bg-white/[0.06]" />
-                        <div className="mt-2 h-2.5 w-20 rounded bg-white/[0.04]" />
-                      </div>
-                    </div>
-
-                    <div className="mt-5 h-10 rounded-lg bg-white/[0.04]" />
-                  </div>
-                ))}
-              </div>
-            </>
+            <LoadingState />
+          ) : error ? (
+            <ErrorState
+              error={error}
+              onRetry={() => fetchCalculations(true)}
+            />
+          ) : filteredCalculations.length === 0 ? (
+            <EmptyState />
           ) : (
             <>
-              {/* ---------------------------------------------------------- */}
-              {/* Desktop table                                               */}
-              {/* ---------------------------------------------------------- */}
-
+              {/* Desktop */}
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full">
                   <thead>
@@ -711,23 +454,27 @@ export default function CalculationsPage() {
                       </th>
 
                       <th className="px-5 py-4 font-medium">
-                        Type
+                        Workload
                       </th>
 
                       <th className="px-5 py-4 font-medium">
-                        Status
+                        Energy
                       </th>
 
                       <th className="px-5 py-4 font-medium">
-                        Result
+                        Water
                       </th>
 
                       <th className="px-5 py-4 font-medium">
-                        Created
+                        CO₂
+                      </th>
+
+                      <th className="px-5 py-4 font-medium">
+                        Renewable
                       </th>
 
                       <th className="px-5 py-4 text-right font-medium">
-                        Actions
+                        View
                       </th>
                     </tr>
                   </thead>
@@ -737,7 +484,7 @@ export default function CalculationsPage() {
                       {filteredCalculations.map(
                         (calculation, index) => (
                           <CalculationRow
-                            key={`${getId(calculation, index)}-${index}`}
+                            key={calculation.id}
                             calculation={calculation}
                             index={index}
                           />
@@ -748,90 +495,287 @@ export default function CalculationsPage() {
                 </table>
               </div>
 
-              {/* ---------------------------------------------------------- */}
-              {/* Mobile cards                                                */}
-              {/* ---------------------------------------------------------- */}
-
+              {/* Mobile */}
               <div className="divide-y divide-white/[0.06] md:hidden">
                 {filteredCalculations.map(
                   (calculation, index) => (
                     <MobileCalculationCard
-                      key={`${getId(calculation, index)}-${index}`}
+                      key={calculation.id}
                       calculation={calculation}
                       index={index}
                     />
                   ),
                 )}
               </div>
-
-              {/* ---------------------------------------------------------- */}
-              {/* Empty                                                        */}
-              {/* ---------------------------------------------------------- */}
-
-              {filteredCalculations.length === 0 && (
-                <EmptyState
-                  hasSearch={Boolean(search.trim())}
-                  hasFilter={activeFilter !== "All"}
-                  hasBackendData={calculations.length > 0}
-                />
-              )}
             </>
           )}
         </motion.section>
-
-        {/* ---------------------------------------------------------------- */}
-        {/* Bottom insight                                                    */}
-        {/* ---------------------------------------------------------------- */}
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35 }}
-          className="mt-5 flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3"
-        >
-          <TrendingDown
-            size={16}
-            className="text-emerald-400"
-          />
-
-          <p className="text-xs leading-5 text-white/35">
-            Use completed calculations to compare environmental
-            impact and generate deeper insights.
-          </p>
-        </motion.div>
       </div>
     </main>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Stat Card                                                                  */
+/* Calculation row                                                            */
 /* -------------------------------------------------------------------------- */
 
-function StatCard({
+function CalculationRow({
+  calculation,
+  index,
+}: {
+  calculation: Calculation;
+  index: number;
+}) {
+  return (
+    <motion.tr
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="group border-b border-white/[0.05] transition hover:bg-white/[0.025]"
+    >
+      <td className="px-5 py-4">
+        <Link
+          href={`/dashboard/calculations/${calculation.id}`}
+          className="flex items-center gap-3"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-400/10 bg-emerald-400/[0.07] text-emerald-400">
+            <Calculator size={17} />
+          </div>
+
+          <div>
+            <div className="text-sm font-medium text-white/90">
+              Calculation #{calculation.id}
+            </div>
+
+            <div className="mt-0.5 text-[11px] text-white/30">
+              {formatDate(calculation.created_at)}
+            </div>
+          </div>
+        </Link>
+      </td>
+
+      <td className="px-5 py-4">
+        <div className="min-w-[180px]">
+          <div className="flex items-center gap-2 text-sm text-white/75">
+            <Server
+              size={14}
+              className="text-cyan-400"
+            />
+            {calculation.gpu_model}
+          </div>
+
+          <div className="mt-1 text-xs text-white/30">
+            {formatNumber(calculation.gpu_count, 0)} GPU
+            {calculation.gpu_count === 1 ? "" : "s"} ·{" "}
+            {formatNumber(calculation.hours_used, 1)} hrs
+          </div>
+        </div>
+      </td>
+
+      <td className="px-5 py-4">
+        <MetricCell
+          value={formatNumber(
+            calculation.impact.energy_kwh.total,
+          )}
+          unit="kWh"
+          icon={<Zap size={13} />}
+        />
+      </td>
+
+      <td className="px-5 py-4">
+        <MetricCell
+          value={formatNumber(
+            calculation.impact.water.liters,
+          )}
+          unit="L"
+          icon={<Droplets size={13} />}
+        />
+      </td>
+
+      <td className="px-5 py-4">
+        <MetricCell
+          value={formatNumber(
+            calculation.impact.co2_kg,
+          )}
+          unit="kg"
+          icon={<Leaf size={13} />}
+        />
+      </td>
+
+      <td className="px-5 py-4">
+        <div className="min-w-[100px]">
+          <div className="text-sm font-medium text-emerald-300">
+            {formatNumber(
+              calculation.renewable_energy_percent,
+              1,
+            )}
+            %
+          </div>
+
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+            <div
+              className="h-full rounded-full bg-emerald-400"
+              style={{
+                width: `${Math.min(
+                  100,
+                  Math.max(
+                    0,
+                    calculation.renewable_energy_percent,
+                  ),
+                )}%`,
+              }}
+            />
+          </div>
+        </div>
+      </td>
+
+      <td className="px-5 py-4">
+        <div className="flex justify-end">
+          <Link
+            href={`/dashboard/calculations/${calculation.id}`}
+            className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-xs text-white/50 transition hover:border-emerald-400/20 hover:bg-emerald-400/[0.06] hover:text-emerald-300"
+          >
+            View details
+            <ChevronRight size={14} />
+          </Link>
+        </div>
+      </td>
+    </motion.tr>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile card                                                                */
+/* -------------------------------------------------------------------------- */
+
+function MobileCalculationCard({
+  calculation,
+  index,
+}: {
+  calculation: Calculation;
+  index: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="p-4"
+    >
+      <Link
+        href={`/dashboard/calculations/${calculation.id}`}
+        className="block"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-400/[0.07] text-emerald-400">
+              <Calculator size={17} />
+            </div>
+
+            <div>
+              <div className="text-sm font-medium text-white/90">
+                Calculation #{calculation.id}
+              </div>
+
+              <div className="mt-1 text-xs text-white/30">
+                {formatDate(calculation.created_at)}
+              </div>
+            </div>
+          </div>
+
+          <ChevronRight
+            size={18}
+            className="mt-2 text-white/25"
+          />
+        </div>
+
+        <div className="mt-5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <div className="flex items-center gap-2 text-sm text-white/75">
+            <Server
+              size={14}
+              className="text-cyan-400"
+            />
+
+            {calculation.gpu_model}
+          </div>
+
+          <div className="mt-1 text-xs text-white/30">
+            {formatNumber(calculation.gpu_count, 0)} GPUs ·{" "}
+            {formatNumber(calculation.hours_used, 1)} hours ·{" "}
+            {formatNumber(calculation.facility_area_m2, 2)} m²
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <MobileMetric
+            label="Energy"
+            value={`${formatNumber(
+              calculation.impact.energy_kwh.total,
+            )} kWh`}
+            icon={<Zap size={14} />}
+          />
+
+          <MobileMetric
+            label="Water"
+            value={`${formatNumber(
+              calculation.impact.water.liters,
+            )} L`}
+            icon={<Droplets size={14} />}
+          />
+
+          <MobileMetric
+            label="CO₂"
+            value={`${formatNumber(
+              calculation.impact.co2_kg,
+            )} kg`}
+            icon={<Leaf size={14} />}
+          />
+
+          <MobileMetric
+            label="Renewable"
+            value={`${formatNumber(
+              calculation.renewable_energy_percent,
+              1,
+            )}%`}
+            icon={<Trees size={14} />}
+          />
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Summary card                                                               */
+/* -------------------------------------------------------------------------- */
+
+function SummaryCard({
   icon,
   label,
   value,
   description,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string | number;
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 transition hover:border-white/[0.12] hover:bg-white/[0.035]">
+    <motion.div
+      whileHover={{ y: -2 }}
+      className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 transition hover:border-white/[0.12]"
+    >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.035] text-emerald-400">
           {icon}
         </div>
 
         <span className="text-[10px] uppercase tracking-wider text-white/20">
-          Workspace
+          Live data
         </span>
       </div>
 
-      <div className="text-2xl font-semibold tracking-tight">
+      <div className="truncate text-2xl font-semibold tracking-tight">
         {value}
       </div>
 
@@ -842,340 +786,110 @@ function StatCard({
       <div className="mt-1 text-xs text-white/25">
         {description}
       </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Status Badge                                                               */
-/* -------------------------------------------------------------------------- */
-
-function StatusBadge({
-  status,
-}: {
-  status: "completed" | "processing" | "failed";
-}) {
-  const config = {
-    completed: {
-      label: "Completed",
-      icon: CheckCircle2,
-      className:
-        "border-emerald-400/15 bg-emerald-400/[0.07] text-emerald-400",
-    },
-
-    processing: {
-      label: "Processing",
-      icon: Clock3,
-      className:
-        "border-amber-400/15 bg-amber-400/[0.07] text-amber-400",
-    },
-
-    failed: {
-      label: "Failed",
-      icon: XCircle,
-      className:
-        "border-red-400/15 bg-red-400/[0.07] text-red-400",
-    },
-  };
-
-  const item = config[status];
-
-  const Icon = item.icon;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] ${item.className}`}
-    >
-      <Icon size={12} />
-
-      {item.label}
-    </span>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Desktop Calculation Row                                                   */
-/* -------------------------------------------------------------------------- */
-
-function CalculationRow({
-  calculation,
-  index,
-}: {
-  calculation: Calculation;
-  index: number;
-}) {
-  const id = getId(calculation, index);
-  const name = getName(calculation);
-  const type = getType(calculation);
-  const status = normalizeStatus(calculation);
-  const result = getResult(calculation);
-  const unit = getUnit(calculation);
-  const createdAt = getCreatedAt(calculation);
-
-  return (
-    <motion.tr
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04 }}
-      className="group border-b border-white/[0.05] transition hover:bg-white/[0.025]"
-    >
-      {/* Calculation */}
-      <td className="px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/[0.07] text-emerald-400">
-            <Calculator size={16} />
-          </div>
-
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-white/85">
-              {name}
-            </div>
-
-            <div className="mt-0.5 truncate text-[11px] text-white/25">
-              {id}
-            </div>
-          </div>
-        </div>
-      </td>
-
-      {/* Type */}
-      <td className="px-5 py-4 text-sm text-white/45">
-        {type}
-      </td>
-
-      {/* Status */}
-      <td className="px-5 py-4">
-        <StatusBadge status={status} />
-      </td>
-
-      {/* Result */}
-      <td className="px-5 py-4">
-        {result ? (
-          <div>
-            <span className="text-sm font-medium text-white/80">
-              {result}
-            </span>
-
-            {unit && (
-              <span className="ml-1 text-xs text-white/30">
-                {unit}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-xs text-white/25">
-            —
-          </span>
-        )}
-      </td>
-
-      {/* Created */}
-      <td className="px-5 py-4 text-xs text-white/35">
-        {createdAt}
-      </td>
-
-      {/* Actions */}
-      <td className="px-5 py-4">
-        <div className="flex justify-end gap-1">
-          <button
-            type="button"
-            title="View"
-            className="rounded-lg p-2 text-white/30 transition hover:bg-white/[0.06] hover:text-white"
-          >
-            <Eye size={16} />
-          </button>
-
-          <button
-            type="button"
-            title="Export"
-            className="rounded-lg p-2 text-white/30 transition hover:bg-white/[0.06] hover:text-white"
-          >
-            <Download size={16} />
-          </button>
-
-          <button
-            type="button"
-            title="More"
-            className="rounded-lg p-2 text-white/30 transition hover:bg-white/[0.06] hover:text-white"
-          >
-            <MoreHorizontal size={16} />
-          </button>
-        </div>
-      </td>
-    </motion.tr>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Mobile Calculation Card                                                   */
-/* -------------------------------------------------------------------------- */
-
-function MobileCalculationCard({
-  calculation,
-  index,
-}: {
-  calculation: Calculation;
-  index: number;
-}) {
-  const id = getId(calculation, index);
-  const name = getName(calculation);
-  const type = getType(calculation);
-  const status = normalizeStatus(calculation);
-  const result = getResult(calculation);
-  const unit = getUnit(calculation);
-  const createdAt = getCreatedAt(calculation);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04 }}
-      className="p-4"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/[0.07] text-emerald-400">
-            <Calculator size={16} />
-          </div>
-
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-white/85">
-              {name}
-            </div>
-
-            <div className="mt-0.5 truncate text-xs text-white/30">
-              {type}
-            </div>
-
-            <div className="mt-0.5 truncate text-[10px] text-white/20">
-              {id}
-            </div>
-          </div>
-        </div>
-
-        <StatusBadge status={status} />
-      </div>
-
-      <div className="mt-4 flex items-end justify-between">
-        <div>
-          <div className="text-[10px] uppercase tracking-wider text-white/20">
-            Result
-          </div>
-
-          {result ? (
-            <div className="mt-1">
-              <span className="text-lg font-semibold">
-                {result}
-              </span>
-
-              {unit && (
-                <span className="ml-1 text-xs text-white/30">
-                  {unit}
-                </span>
-              )}
-            </div>
-          ) : (
-            <div className="mt-1 text-sm text-white/25">
-              —
-            </div>
-          )}
-        </div>
-
-        <div className="text-right">
-          <div className="text-[10px] uppercase tracking-wider text-white/20">
-            Created
-          </div>
-
-          <div className="mt-1 text-xs text-white/35">
-            {createdAt}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.025] py-2 text-xs text-white/50 transition hover:bg-white/[0.05] hover:text-white/70"
-        >
-          <Eye size={14} />
-          View
-        </button>
-
-        <button
-          type="button"
-          className="flex items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.025] px-3 text-white/40 transition hover:bg-white/[0.05] hover:text-white/70"
-        >
-          <MoreHorizontal size={15} />
-        </button>
-      </div>
     </motion.div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Loading Skeleton                                                           */
+/* Small components                                                           */
 /* -------------------------------------------------------------------------- */
 
-function CalculationSkeleton() {
+function MetricCell({
+  value,
+  unit,
+  icon,
+}: {
+  value: string;
+  unit: string;
+  icon: ReactNode;
+}) {
   return (
-    <div className="grid animate-pulse grid-cols-6 items-center gap-4 px-5 py-5">
-      <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-lg bg-white/[0.06]" />
-
-        <div>
-          <div className="h-3 w-36 rounded bg-white/[0.06]" />
-          <div className="mt-2 h-2 w-20 rounded bg-white/[0.04]" />
-        </div>
+    <div>
+      <div className="flex items-center gap-1.5 text-sm font-medium text-white/80">
+        <span className="text-emerald-400">
+          {icon}
+        </span>
+        {value}
       </div>
 
-      <div className="h-3 w-20 rounded bg-white/[0.05]" />
-
-      <div className="h-6 w-20 rounded-full bg-white/[0.05]" />
-
-      <div className="h-3 w-16 rounded bg-white/[0.05]" />
-
-      <div className="h-3 w-28 rounded bg-white/[0.04]" />
-
-      <div className="flex justify-end gap-2">
-        <div className="h-8 w-8 rounded-lg bg-white/[0.05]" />
-        <div className="h-8 w-8 rounded-lg bg-white/[0.05]" />
-        <div className="h-8 w-8 rounded-lg bg-white/[0.05]" />
+      <div className="mt-0.5 pl-5 text-[11px] text-white/25">
+        {unit}
       </div>
     </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Empty State                                                                */
-/* -------------------------------------------------------------------------- */
-
-function EmptyState({
-  hasSearch,
-  hasFilter,
-  hasBackendData,
+function MobileMetric({
+  label,
+  value,
+  icon,
 }: {
-  hasSearch: boolean;
-  hasFilter: boolean;
-  hasBackendData: boolean;
+  label: string;
+  value: string;
+  icon: ReactNode;
 }) {
-  let title = "No calculations found";
-  let description =
-    "There are currently no calculations returned by the backend.";
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.025] p-3">
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/25">
+        <span className="text-emerald-400">
+          {icon}
+        </span>
+        {label}
+      </div>
 
-  if (hasSearch) {
-    title = "No matching calculations";
-    description =
-      "Try changing your search query.";
-  } else if (hasFilter) {
-    title = "No calculations in this status";
-    description =
-      "Try selecting another status filter.";
-  } else if (hasBackendData) {
-    title = "No calculations match";
-    description =
-      "The backend returned data, but nothing matches the current filters.";
-  }
+      <div className="mt-2 text-sm font-semibold text-white/80">
+        {value}
+      </div>
+    </div>
+  );
+}
 
+function LoadingState() {
+  return (
+    <div className="grid grid-cols-1 gap-3 p-5">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div
+          key={index}
+          className="h-20 animate-pulse rounded-xl border border-white/[0.05] bg-white/[0.025]"
+        />
+      ))}
+    </div>
+  );
+}
+
+function ErrorState({
+  error,
+  onRetry,
+}: {
+  error: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-red-400/10 bg-red-400/[0.05] text-red-400">
+        <Clock3 size={20} />
+      </div>
+
+      <h3 className="font-medium">
+        Unable to load calculations
+      </h3>
+
+      <p className="mt-2 max-w-md text-sm text-white/35">
+        {error}
+      </p>
+
+      <button
+        onClick={onRetry}
+        className="mt-5 flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/60 transition hover:bg-white/[0.07] hover:text-white"
+      >
+        <RefreshCw size={14} />
+        Try again
+      </button>
+    </div>
+  );
+}
+
+function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.04] text-white/30">
@@ -1183,11 +897,11 @@ function EmptyState({
       </div>
 
       <h3 className="font-medium">
-        {title}
+        No calculations found
       </h3>
 
-      <p className="mt-1 max-w-sm text-sm text-white/35">
-        {description}
+      <p className="mt-2 max-w-sm text-sm text-white/35">
+        No calculations match your current search or filter.
       </p>
     </div>
   );
