@@ -1,4 +1,4 @@
-import NEWCalculationsPage from "@/pages/user_page/newcalculations.tsx";
+import NEWCalculationsPage from "@/pages/user_page/newcalculations";
 
 export default function NEWCalculation() {
     return (

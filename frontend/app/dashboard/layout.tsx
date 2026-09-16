@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Sidebar, {
   MobileMenuButton,
-} from "@/pages/user_page/sidebar.tsx";
+} from "@/pages/user_page/sidebar"
 
 export default function DashboardLayout({
   children,

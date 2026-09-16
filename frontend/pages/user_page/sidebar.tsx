@@ -223,7 +223,7 @@ export default function Sidebar({
 
     return (
       pathname === href ||
-      pathname.startsWith(`${href}/`)
+      pathname?.startsWith(`${href}/`)
     );
   };
 

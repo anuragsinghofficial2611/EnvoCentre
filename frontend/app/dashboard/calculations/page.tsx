@@ -1,4 +1,4 @@
-import CalculationsPage from "@/pages/user_page/calculations.tsx";
+import CalculationsPage from "@/pages/user_page/calculations"
 
 export default function Calculation() {
     return (
