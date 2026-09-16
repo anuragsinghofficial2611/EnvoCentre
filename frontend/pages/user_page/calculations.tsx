@@ -161,18 +161,6 @@ export default function CalculationsPage() {
         throw new Error(message);
       }
 
-      /*
-       * Backend response is expected to be:
-       *
-       * [
-       *   {
-       *     id: 1,
-       *     facility_area_m2: ...,
-       *     gpu_model: ...,
-       *     impact: {...}
-       *   }
-       * ]
-       */
 
       const result = Array.isArray(data)
         ? data
@@ -285,7 +273,7 @@ export default function CalculationsPage() {
             </button>
 
             <Link
-              href="/calculations/new"
+              href="/dashboard/calculations/new"
               className="group flex h-11 items-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-[#03100b] shadow-[0_0_30px_rgba(16,185,129,0.16)] transition hover:bg-emerald-400"
             >
               <Sparkles size={17} />
@@ -357,7 +345,7 @@ export default function CalculationsPage() {
             </div>
 
             <Link
-              href="/calculations/new"
+              href="/dashboard/calculations/new"
               className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-400/15"
             >
               Create calculation

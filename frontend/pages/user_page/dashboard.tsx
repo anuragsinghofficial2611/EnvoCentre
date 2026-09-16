@@ -384,15 +384,6 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* =====================================================
-          Main
-          
-          NO Sidebar here.
-          NO lg:ml-[260px] here.
-
-          Workspace layout already handles sidebar spacing.
-      ===================================================== */}
-
       <main className="relative min-h-screen w-full">
         {/* ===================================================
             Header
@@ -425,7 +416,7 @@ export default function DashboardPage() {
 
             {/* Search */}
 
-            <div className="hidden w-full max-w-md items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 py-2.5 md:flex">
+            {/* <div className="hidden w-full max-w-md items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 py-2.5 md:flex">
               <Search
                 size={17}
                 className="text-zinc-600"
@@ -453,7 +444,7 @@ export default function DashboardPage() {
               <kbd className="hidden rounded-md border border-white/[0.07] px-1.5 py-0.5 text-[10px] text-zinc-600 lg:block">
                 /
               </kbd>
-            </div>
+            </div> */}
 
             {/* Right side */}
 
@@ -522,7 +513,7 @@ export default function DashboardPage() {
             </div>
 
             <Link
-              href="/calculations/new"
+              href="/dashboard/calculations/new"
               className="group relative inline-flex h-11 items-center justify-center gap-2 overflow-hidden rounded-xl bg-emerald-400 px-5 text-sm font-semibold text-[#04100a] shadow-[0_0_30px_rgba(52,211,153,0.10)] transition-all duration-300 hover:bg-emerald-300 hover:shadow-[0_0_35px_rgba(52,211,153,0.18)]"
             >
               <Plus size={17} />

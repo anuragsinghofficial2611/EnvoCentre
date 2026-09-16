@@ -297,10 +297,10 @@ export default function Home() {
 
             <div ref={actionsRef} className="mt-9 flex flex-wrap gap-4">
               <Link
-                href="/dashboard"
+                href="/auth/login"
                 className="group flex items-center gap-3 rounded-full bg-emerald-400 px-6 py-3.5 text-sm font-semibold text-[#041009] transition hover:bg-emerald-300"
               >
-                Start calculating
+                Get Started
 
                 <span className="transition-transform group-hover:translate-x-1">
                   →

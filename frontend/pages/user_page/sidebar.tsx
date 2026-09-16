@@ -47,11 +47,6 @@ const workspaceItems = [
     href: "/dashboard/calculations/compare",
     icon: GitCompare,
   },
-  {
-    label: "AI Impact",
-    href: "/dashboard/ai-impact",
-    icon: Sparkles,
-  },
 ];
 
 const manageItems = [
