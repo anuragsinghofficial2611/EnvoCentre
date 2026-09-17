@@ -286,7 +286,7 @@ export default function NewCalculationPage() {
             className="mb-8"
           >
             <Link
-              href="/calculations"
+              href="/dashboard/calculations"
               className="mb-6 inline-flex items-center gap-2 text-sm text-white/40 transition hover:text-white/70"
             >
               <ArrowLeft size={16} />

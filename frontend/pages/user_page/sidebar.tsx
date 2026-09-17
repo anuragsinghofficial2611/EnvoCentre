@@ -52,7 +52,7 @@ const workspaceItems = [
 const manageItems = [
   {
     label: "Batch Calculations",
-    href: "/dashboard/batch",
+    href: "/dashboard/calculations/batch",
     icon: Upload,
   },
   {
@@ -549,7 +549,7 @@ export default function Sidebar({
             "
           >
             <Link
-              href="/calculations/new"
+              href="/dashboard/calculations/new"
               onClick={() => onMobileClose?.()}
               title={
                 collapsed

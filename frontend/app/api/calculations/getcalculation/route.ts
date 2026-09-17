@@ -15,14 +15,25 @@ export async function GET(request: NextRequest) {
   },{
     status: 401
   })
-    const response = await fetch(`${API_URL}/api/v1/calculations`, {
+    const searchParams = request.nextUrl.searchParams;
+    const query = new URLSearchParams();
+    const skip = searchParams.get("skip");
+    const limit = searchParams.get("limit");
+
+    if (skip) query.set("skip", skip);
+    if (limit) query.set("limit", limit);
+
+    const response = await fetch(
+      `${API_URL}/api/v1/calculations${query.size ? `?${query}` : ""}`,
+      {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
       cache: "no-store",
-    });
+      },
+    );
 
     const data = await response.json().catch(() => null);
     console.log(data)

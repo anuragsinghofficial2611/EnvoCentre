@@ -145,6 +145,39 @@ const getHistoryItems = (response: any): HistoryItem[] => {
   return [];
 };
 
+const gpuModels = [
+  "NVIDIA A100",
+  "NVIDIA A100 40GB",
+  "NVIDIA A100 80GB",
+  "NVIDIA A40",
+  "NVIDIA B100",
+  "NVIDIA B200",
+  "NVIDIA GB200 NVL72",
+  "NVIDIA H100 PCIe",
+  "NVIDIA H100 SXM",
+  "NVIDIA H200 PCIe",
+  "NVIDIA H200 SXM",
+  "NVIDIA L40",
+  "NVIDIA L40S",
+  "NVIDIA RTX 4080",
+  "NVIDIA RTX 4080 SUPER",
+  "NVIDIA RTX 4090",
+  "NVIDIA RTX A6000",
+  "AMD MI100",
+  "AMD MI210",
+  "AMD MI250X",
+  "AMD MI300A",
+  "AMD MI300X",
+  "AMD MI325X",
+  "AMD MI350X",
+  "AWS INFERENTIA",
+  "AWS INFERENTIA2",
+  "AWS TRAINIUM",
+  "AWS TRAINIUM2",
+  "GOOGLE TPU V5E",
+  "GOOGLE TPU V5P",
+];
+
 const getHistoryId = (item: HistoryItem) => {
   return item.id || item._id || "";
 };
@@ -502,11 +535,10 @@ function ComparisonTable({
                       <span className="text-zinc-600">—</span>
                     ) : (
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                          increase
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${increase
                             ? "bg-amber-400/10 text-amber-300"
                             : "bg-emerald-400/10 text-emerald-300"
-                        }`}
+                          }`}
                       >
                         {increase ? "+" : ""}
                         {formatNumber(pair.delta_percent)}%
@@ -983,21 +1015,21 @@ function ResultPanel({
       {/* Notes */}
       {((left?.notes?.length ?? 0) > 0 ||
         (right?.notes?.length ?? 0) > 0) && (
-        <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-5">
-          <div className="mb-3 flex items-center gap-2 text-amber-300">
-            <CircleAlert size={17} />
-            <h3 className="font-semibold">Calculation notes</h3>
-          </div>
+          <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-5">
+            <div className="mb-3 flex items-center gap-2 text-amber-300">
+              <CircleAlert size={17} />
+              <h3 className="font-semibold">Calculation notes</h3>
+            </div>
 
-          <div className="space-y-2 text-sm text-zinc-400">
-            {[...(left?.notes || []), ...(right?.notes || [])].map(
-              (note: any, index: number) => (
-                <p key={index}>• {String(note)}</p>
-              )
-            )}
+            <div className="space-y-2 text-sm text-zinc-400">
+              {[...(left?.notes || []), ...(right?.notes || [])].map(
+                (note: any, index: number) => (
+                  <p key={index}>• {String(note)}</p>
+                )
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </motion.div>
   );
 }
@@ -1049,8 +1081,8 @@ export default function CompareCalculationPage() {
       if (!response.ok) {
         throw new Error(
           data?.message ||
-            data?.detail ||
-            `Request failed with status ${response.status}`
+          data?.detail ||
+          `Request failed with status ${response.status}`
         );
       }
 
@@ -1162,9 +1194,9 @@ export default function CompareCalculationPage() {
       if (!response.ok) {
         throw new Error(
           data?.message ||
-            data?.detail ||
-            data?.error ||
-            `Request failed with status ${response.status}`
+          data?.detail ||
+          data?.error ||
+          `Request failed with status ${response.status}`
         );
       }
 

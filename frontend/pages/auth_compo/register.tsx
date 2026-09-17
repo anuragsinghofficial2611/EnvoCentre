@@ -223,11 +223,7 @@ export default function RegisterPage() {
 
     try {
 
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL ||
-        "https://envocentre-183a75cb.fastapicloud.dev";
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/register`, {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

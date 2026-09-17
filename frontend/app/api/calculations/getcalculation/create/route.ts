@@ -20,7 +20,17 @@ export async function POST(request: NextRequest) {
 
     const { facility_area_m2,gpu_model,gpu_count,hours_used,renewable_energy_percent } = body;
 
-    if (!facility_area_m2 || !gpu_model || !gpu_count || !hours_used || !renewable_energy_percent) {
+    if (
+      facility_area_m2 === undefined ||
+      facility_area_m2 === null ||
+      !gpu_model ||
+      gpu_count === undefined ||
+      gpu_count === null ||
+      hours_used === undefined ||
+      hours_used === null ||
+      renewable_energy_percent === undefined ||
+      renewable_energy_percent === null
+    ) {
       return NextResponse.json(
         {
           success: false,

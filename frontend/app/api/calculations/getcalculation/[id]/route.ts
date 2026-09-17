@@ -5,44 +5,28 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://envocentre-183a75cb.fastapicloud.dev";
 
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
 export async function GET(
-  request: NextRequest,
-  context: {
-    params: Promise<{ id: string }>;
-  },
+  _request: NextRequest,
+  context: RouteContext,
 ) {
   try {
-    const cookieStore = await cookies();
-
-    const token =
-      cookieStore.get("access_token")?.value;
+    const token = (await cookies()).get("access_token")?.value;
 
     if (!token) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Token not found",
-        },
+        { success: false, message: "Token not found" },
         { status: 401 },
       );
     }
 
     const { id } = await context.params;
-
-    if (!id) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Calculation ID is required",
-        },
-        { status: 400 },
-      );
-    }
-
     const response = await fetch(
-      `${API_URL}/api/v1/calculations/${id}`,
+      `${API_URL}/api/v1/calculations/${encodeURIComponent(id)}`,
       {
-        method: "GET",
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
@@ -53,11 +37,6 @@ export async function GET(
 
     const data = await response.json().catch(() => null);
 
-    console.log(
-      "Calculation detail backend response:",
-      data,
-    );
-
     if (!response.ok) {
       return NextResponse.json(
         {
@@ -66,26 +45,18 @@ export async function GET(
             data?.detail ||
             data?.message ||
             data?.error ||
-            "Unable to fetch calculation",
+            "Unable to load calculation",
         },
         { status: response.status },
       );
     }
 
-    return NextResponse.json(data, {
-      status: 200,
-    });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error(
-      "Calculation detail route error:",
-      error,
-    );
+    console.error("Calculation detail route error:", error);
 
     return NextResponse.json(
-      {
-        success: false,
-        message: "Unable to connect to server",
-      },
+      { success: false, message: "Unable to connect to server" },
       { status: 500 },
     );
   }

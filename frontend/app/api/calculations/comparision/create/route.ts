@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from 'next/headers';
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://envocentre-183a75cb.fastapicloud.dev";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +30,7 @@ export async function POST(request: NextRequest) {
     // }
 
     console.log('request is being to server...')
-    const response = await fetch(`${process.env.API_URL}/api/v1/calculations/compare`, {
+    const response = await fetch(`${API_URL}/api/v1/calculations/compare`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
