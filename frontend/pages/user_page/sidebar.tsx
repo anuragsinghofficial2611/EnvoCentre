@@ -55,24 +55,10 @@ const manageItems = [
     href: "/dashboard/calculations/batch",
     icon: Upload,
   },
-  {
-    label: "Shared",
-    href: "/dashboard/shared",
-    icon: Share2,
-  },
-  {
-    label: "Exports",
-    href: "/dashboard/exports",
-    icon: FileSpreadsheet,
-  },
+  
 ];
 
 const settingsItems = [
-  {
-    label: "Settings",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
 ];
 
 /* =========================================================
