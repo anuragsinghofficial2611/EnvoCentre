@@ -76,7 +76,9 @@ export default function Sidebar({
   const navRef = useRef<HTMLDivElement | null>(null);
   const ambientRef = useRef<HTMLDivElement | null>(null);
 
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+  return window.innerWidth < 768;
+});
 
   /* -------------------------------------------------------
      Restore sidebar state
