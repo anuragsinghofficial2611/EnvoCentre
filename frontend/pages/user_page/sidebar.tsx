@@ -55,11 +55,9 @@ const manageItems = [
     href: "/dashboard/calculations/batch",
     icon: Upload,
   },
-  
+
 ];
 
-const settingsItems = [
-];
 
 /* =========================================================
    Sidebar
@@ -76,9 +74,20 @@ export default function Sidebar({
   const navRef = useRef<HTMLDivElement | null>(null);
   const ambientRef = useRef<HTMLDivElement | null>(null);
 
-  const [collapsed, setCollapsed] = useState(() => {
-  return window.innerWidth < 768;
-});
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      setCollapsed(window.innerWidth < 768);
+    };
+
+    handleResize();
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   /* -------------------------------------------------------
      Restore sidebar state
@@ -241,10 +250,9 @@ export default function Sidebar({
           text-sm font-medium
           transition-all duration-200
           ${collapsed ? "justify-center" : ""}
-          ${
-            active
-              ? "bg-emerald-400/[0.10] text-emerald-300"
-              : "text-zinc-400 hover:bg-white/[0.045] hover:text-zinc-100"
+          ${active
+            ? "bg-emerald-400/[0.10] text-emerald-300"
+            : "text-zinc-400 hover:bg-white/[0.045] hover:text-zinc-100"
           }
         `}
       >
@@ -270,10 +278,9 @@ export default function Sidebar({
           strokeWidth={1.8}
           className={`
             shrink-0 transition-colors
-            ${
-              active
-                ? "text-emerald-300"
-                : "text-zinc-500 group-hover:text-zinc-300"
+            ${active
+              ? "text-emerald-300"
+              : "text-zinc-500 group-hover:text-zinc-300"
             }
           `}
         />
@@ -350,16 +357,14 @@ export default function Sidebar({
 
           transition-[width] duration-300
 
-          ${
-            collapsed
-              ? "w-[76px]"
-              : "w-[260px]"
+          ${collapsed
+            ? "w-[76px]"
+            : "w-[260px]"
           }
 
-          ${
-            mobileOpen
-              ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
+          ${mobileOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
           }
         `}
       >
@@ -395,10 +400,9 @@ export default function Sidebar({
             items-center
             border-b border-white/[0.06]
 
-            ${
-              collapsed
-                ? "justify-center px-3"
-                : "px-5"
+            ${collapsed
+              ? "justify-center px-3"
+              : "px-5"
             }
           `}
         >
@@ -562,10 +566,9 @@ export default function Sidebar({
                 hover:border-emerald-300/30
                 hover:bg-emerald-400/[0.13]
 
-                ${
-                  collapsed
-                    ? "justify-center"
-                    : ""
+                ${collapsed
+                  ? "justify-center"
+                  : ""
                 }
               `}
             >
@@ -657,11 +660,11 @@ export default function Sidebar({
         >
           {/* Settings */}
 
-          <nav className="space-y-1">
+          {/* <nav className="space-y-1">
             {settingsItems.map(
               renderNavigationItem,
             )}
-          </nav>
+          </nav> */}
 
           {/* =================================================
               User profile
